@@ -47,6 +47,19 @@ include (CMakePackageConfigHelpers)
 include (CPack)
 include (GNUInstallDirs)
 
+# Compile Flags
+if ("${CMAKE_HOST_SYSTEM_PROCESSOR}" STREQUAL "armv7l")
+  message(STATUS "Using ARMv7 optimized flags!")
+  set(VILIB_ARCH_FLAGS "-march=armv7-a -mfpu=neon -mfloat-abi=hard")
+  add_definitions(-D__ARM_NEON__)
+elseif ("${CMAKE_HOST_SYSTEM_PROCESSOR}" STREQUAL "aarch64")
+  message(STATUS "Using ARM aarch64 optimized flags!")
+  set(VILIB_ARCH_FLAGS "-march=native")
+  add_definitions(-D__ARM_NEON__)
+else ()
+  set(VILIB_ARCH_FLAGS "-march=native")
+endif ()
+
 if (CMAKE_CUDA_COMPILER)
 else()
    find_package(CUDA REQUIRED)
@@ -55,18 +68,25 @@ else()
    message(STATUS "Found CUDA ${CUDA_VERSION_STRING} at ${CUDA_TOOLKIT_ROOT_DIR}")
 endif()
 
-
+find_package(catkin REQUIRED COMPONENTS sensor_msgs)
 find_package(OpenCV REQUIRED COMPONENTS core)
 find_package(Eigen3 REQUIRED)
 
 option(BUILD_SHARED_LIBS "build shared libraries" ON)
 cmake_print_variables(BUILD_SHARED_LIBS)
 
-
 set(CUSTOM_OPENCV_PATH "" CACHE PATH "path to custom opencv version")
 
 file(GLOB_RECURSE VILIB_SOURCES
   visual_lib/src/*.cpp
+  visual_lib/src/common/*.cpp
+  visual_lib/src/storage/*.cpp
+  visual_lib/src/preprocess/*.cpp
+  visual_lib/src/preprocess/*.cu
+  visual_lib/src/feature_tracker/*.cpp
+  visual_lib/src/feature_tracker/*.cu
+  visual_lib/src/feature_detection/*.cpp
+  visual_lib/src/feature_detection/*.cu
   visual_lib/src/*.cu
 )
 
@@ -77,12 +97,13 @@ else()
 endif()
 
 # the PUBLIC keyword means that any targets linking to this
-# target also need that include directory. 
+# target also need that include directory.
 target_include_directories(vilib PUBLIC
-    $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/visual_lib/include>  
+    $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/visual_lib/include>
     $<INSTALL_INTERFACE:include>
     ${CMAKE_CUDA_TOOLKIT_INCLUDE_DIRECTORIES}
     ${CUDA_INCLUDE_DIRS}
+    ${catkin_INCLUDE_DIRS}
     )
 
 # will require that the compiler support compiler standard, and
@@ -102,19 +123,55 @@ set_target_properties(vilib
   )
 
 target_link_libraries(vilib PUBLIC
-  opencv_core Eigen3::Eigen ${CUDA_LIBRARIES})
+  opencv_core
+  opencv_imgproc
+  opencv_highgui
+  opencv_features2d
+  Eigen3::Eigen
+  ${CUDA_LIBRARIES}
+  ${catkin_LIBRARIES})
 
 # Set different compiler options for cxx and nvcc
 
-set(cxx_options -Wall -Wextra -Werror -Wfatal-errors -ffast-math -fsee -fno-signed-zeros -fno-math-errno -funroll-loops -fno-finite-math-only -march=native -O3 -DNDEBUG)
-set(nvcc_options --device-w --ftz=true --prec-div=false --prec-sqrt=false --fmad=true --default-stream per-thread -O3 -DNDEBUG)
+set(VILIB_CXX_FLAGS
+  ${VILIB_ARCH_FLAGS}
+  -std=c++17
+  -O3
+  -DNDEBUG
+  -DROS_SUPPORT
+  -Wall
+  -Wextra
+  -Werror
+  -Wfatal-errors
+  -Wno-overloaded-virtual
+  -ffast-math
+  -fsee
+  -fno-signed-zeros
+  -fno-math-errno
+  -funroll-loops
+  -fno-finite-math-only
+)
+
+set(VILIB_NVCC_FLAGS
+  ${VILIB_ARCH_FLAGS}
+  -std=c++11
+  -O3
+  -DNDEBUG
+  -DROS_SUPPORT
+  --device-w
+  --ftz=true
+  --prec-div=false
+  --prec-sqrt=false
+  --fmad=true
+  --default-stream per-thread
+)
 
 # the generator is only expanded if <COMPILE_LANGUAGE:FOO> evaluates to true
 
 if (CMAKE_CUDA_COMPILER)
-   target_compile_options(vilib PRIVATE $<$<COMPILE_LANGUAGE:CXX>:${cxx_options}> $<$<COMPILE_LANGUAGE:CUDA>:${nvcc_options}>)
+   target_compile_options(vilib PRIVATE $<$<COMPILE_LANGUAGE:CXX>:${VILIB_CXX_FLAGS}> $<$<COMPILE_LANGUAGE:CUDA>:${VILIB_NVCC_FLAGS}>)
 else()
-   target_compile_options(vilib PRIVATE $<$<COMPILE_LANGUAGE:CXX>:${cxx_options}> $<$<NOT:$<COMPILE_LANGUAGE:CXX>>:${nvcc_options}>)
+   target_compile_options(vilib PRIVATE $<$<COMPILE_LANGUAGE:CXX>:${VILIB_CXX_FLAGS}> $<$<NOT:$<COMPILE_LANGUAGE:CXX>>:${VILIB_NVCC_FLAGS}>)
 endif()
 
 # Specify how to install the target.
