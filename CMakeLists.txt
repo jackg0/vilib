@@ -166,6 +166,11 @@ set(VILIB_NVCC_FLAGS
   --default-stream per-thread
 )
 
+set_target_properties(${PROJECT_NAME}
+  PROPERTIES
+  CUDA_ARCHITECTURES "52;62;86"
+)
+
 # the generator is only expanded if <COMPILE_LANGUAGE:FOO> evaluates to true
 
 if (CMAKE_CUDA_COMPILER)
