@@ -49,6 +49,7 @@ namespace vilib {
 
 class Frame {
 public:
+  Frame();
   Frame(const cv::Mat & img,
         const int64_t timestamp_nsec,
         const std::size_t n_pyr_levels,
@@ -63,6 +64,8 @@ public:
   image_pyramid_descriptor_t getPyramidDescriptor(void) const;
 
   void resizeFeatureStorage(std::size_t new_size);
+
+  bool invalid();
 
   // Unique ID of the frame
   std::size_t id_;
@@ -94,6 +97,10 @@ private:
   // Continuously growing frame counter to provide unique IDs
   static std::size_t last_id_;
   static std::mutex last_id_mutex_;
+
+  bool invalid_;
+
+
 };
 
 } // namespace vilib

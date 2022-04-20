@@ -46,6 +46,11 @@ namespace vilib {
 std::size_t Frame::last_id_ = 0;
 std::mutex Frame::last_id_mutex_;
 
+Frame::Frame()
+{
+    invalid_ = true;
+}
+
 Frame::Frame(const cv::Mat & img,
              const int64_t timestamp_nsec,
              const std::size_t n_pyr_levels,
@@ -55,6 +60,7 @@ Frame::Frame(const cv::Mat & img,
         img.rows,
         n_pyr_levels) {
   preprocess_image(img,pyramid_,stream);
+  invalid_ = false;
 }
 
 #ifdef ROS_SUPPORT
@@ -66,6 +72,7 @@ Frame::Frame(const sensor_msgs::ImageConstPtr & msg,
         msg->height,
         n_pyr_levels) {
   preprocess_image(msg,pyramid_,stream);
+  invalid_ = false;
 }
 #endif /* ROS_SUPPORT */
 
@@ -122,6 +129,10 @@ void Frame::resizeFeatureStorage(std::size_t new_size) {
   score_vec_.conservativeResize(new_size, Eigen::NoChange);
   track_id_vec_.conservativeResize(new_size);
   track_id_vec_.tail(uninitialized_cols).setConstant(-1);
+}
+
+bool Frame::invalid() {
+    return invalid_;
 }
 
 } // namespace vilib

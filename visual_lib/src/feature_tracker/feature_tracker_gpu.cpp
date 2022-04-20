@@ -99,13 +99,15 @@ void FeatureTrackerGPU::track(const std::shared_ptr<FrameBundle> & cur_frames,
   for(std::size_t c=0;c<cur_frames->size();++c) {
     assert(detector_[c] != nullptr && "One must set a GPU feature detector first");
     cur_base_frames.push_back(cur_frames->at(c));
+    if (cur_base_frames[c]->invalid())
+      continue;
     cur_pyramids.push_back(cur_base_frames[c]->getPyramidDescriptor());
     cur_base_frames[c]->resizeFeatureStorage(max_ftr_count_);
   }
 
   // 01) Track existing feature tracks (only if there is any)
   for(std::size_t c=0;c<cur_frames->size();++c) {
-    if(tracks_[c].size() > 0) {
+    if(!cur_base_frames[c]->invalid() && tracks_[c].size() > 0) {
       for(std::size_t track_id=0; track_id<tracks_[c].size(); ++track_id) {
         struct FeatureTrack & track = tracks_[c][track_id];
         // opposed to the previous version, now we only need to update
@@ -136,6 +138,8 @@ void FeatureTrackerGPU::track(const std::shared_ptr<FrameBundle> & cur_frames,
 
   // 02) Process Tracking results
   for(std::size_t c=0;c<cur_frames->size();++c) {
+    if (cur_base_frames[c]->invalid())
+      continue;
     tracked_features_num_[c] = 0;
     std::vector<std::size_t> remove_indices;
     if(tracks_[c].size() > 0) {
@@ -187,6 +191,8 @@ void FeatureTrackerGPU::track(const std::shared_ptr<FrameBundle> & cur_frames,
 
   // 03) Detect new features (if necessary)
   for(std::size_t c=0;c<cur_frames->size();++c) {
+    if (cur_base_frames[c]->invalid())
+      continue;
     detected_features_num_[c] = 0;
     if(tracked_features_num_[c] < options_.min_tracks_to_detect_new_features) {
       OccupancyGrid2D & detector_grid = detector_[c]->getGrid();
