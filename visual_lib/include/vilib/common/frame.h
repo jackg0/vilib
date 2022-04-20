@@ -49,7 +49,11 @@ namespace vilib {
 
 class Frame {
 public:
-  Frame();
+  Frame(const int64_t timestamp_nsec,
+        const std::size_t image_width,
+        const std::size_t image_height,
+        const std::size_t n_pyr_levels,
+        bool invalid);
   Frame(const cv::Mat & img,
         const int64_t timestamp_nsec,
         const std::size_t n_pyr_levels,
@@ -99,8 +103,6 @@ private:
   static std::mutex last_id_mutex_;
 
   bool invalid_;
-
-
 };
 
 } // namespace vilib

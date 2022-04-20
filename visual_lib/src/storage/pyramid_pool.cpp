@@ -108,6 +108,7 @@ void PyramidPool::get(std::size_t preallocated_item_num,
 
 void PyramidPool::release(std::vector<std::shared_ptr<Subframe>> & pyramid) {
   if(!initialized_) return;
+  if(pyramid.empty()) return;
   for(std::size_t l=0;l<pool_.size();++l) {
     pool_[l]->return_subframe(pyramid[l]);
   }

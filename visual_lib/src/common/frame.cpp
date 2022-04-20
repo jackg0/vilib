@@ -46,9 +46,14 @@ namespace vilib {
 std::size_t Frame::last_id_ = 0;
 std::mutex Frame::last_id_mutex_;
 
-Frame::Frame()
+Frame::Frame(const int64_t timestamp_nsec,
+             const std::size_t image_width,
+             const std::size_t image_height,
+             const std::size_t n_pyr_levels,
+             bool invalid)
 {
-    invalid_ = true;
+    Frame(timestamp_nsec, image_width, image_height, n_pyr_levels);
+    invalid_ = invalid;
 }
 
 Frame::Frame(const cv::Mat & img,
