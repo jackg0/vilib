@@ -127,7 +127,7 @@ target_link_libraries(vilib PUBLIC
   opencv_imgproc
   opencv_highgui
   opencv_features2d
-  Eigen3::Eigen
+  eigen
   ${CUDA_LIBRARIES}
   ${catkin_LIBRARIES})
 
