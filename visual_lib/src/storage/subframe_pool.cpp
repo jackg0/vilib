@@ -63,13 +63,15 @@ SubframePool::~SubframePool(void) {
 
 std::shared_ptr<Subframe> SubframePool::get_subframe(void) {
   // Do we have any more items preallocated?
-  if(items_.empty() == false) {
+  {
     std::lock_guard<std::mutex> lock(items_mutex_);
-    // Yes, take the first element from the unused list, and return it
-    std::shared_ptr<Subframe> ptr = items_.front();
-    items_.pop_front();
-    --items_size_;
-    return ptr;
+    if(items_.empty() == false) {
+      // Yes, take the first element from the unused list, and return it
+      std::shared_ptr<Subframe> ptr = items_.front();
+      items_.pop_front();
+      --items_size_;
+      return ptr;
+    }
   }
   // No, just allocate a new element
   return std::shared_ptr<Subframe>(new Subframe(width_,
